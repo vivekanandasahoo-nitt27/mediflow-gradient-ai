@@ -1,0 +1,47 @@
+from appointment.scheduler import book_slot
+from database import get_user_by_id, get_doctor_by_id
+from notifications.email_service import send_appointment_email
+from database import get_latest_report_by_user_id
+
+
+
+def confirm_booking(user_id, doctor_id, appointment_date, slot):
+    if not appointment_date:
+        return "Please select an appointment date."
+
+    if not user_id:
+        return "Please login before booking appointment."
+
+    if slot == "No slots available":
+        return "No slots available. Please try another date."
+
+    success, message = book_slot(
+        patient_id=user_id,
+        doctor_id=doctor_id,
+        severity=50,
+        confidence=0.8,
+        symptom_level="Moderate",
+        duration="2 days",
+        date=str(appointment_date),
+        time_slot=slot
+    )
+
+    if success:
+
+        patient = get_user_by_id(user_id)
+        doctor = get_doctor_by_id(doctor_id)
+
+        patient_email = patient.email
+        doctor_email = doctor.email
+
+        report_path = get_latest_report_by_user_id(user_id)
+        print("DEBUG REPORT PATH:", report_path)  
+
+        send_appointment_email(
+            patient_email,
+            doctor_email,
+            report_path,
+            slot
+        )
+
+    return message
