@@ -72,6 +72,18 @@ class Appointment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
 
+class HealthMetric(Base):
+    __tablename__ = "health_metrics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    metric_name = Column(String)
+    value = Column(String)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+
 def get_latest_report_by_user_id(user_id):
 
     session = SessionLocal()

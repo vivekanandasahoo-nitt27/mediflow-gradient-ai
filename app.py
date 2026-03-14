@@ -1,3 +1,8 @@
+from appointment.models.download_models import download_models
+
+download_models()
+
+
 import gradio as gr
 from voice_of_the_patient import transcribe_with_groq
 from brain_of_the_doctor import analyze_image_with_query
@@ -15,6 +20,11 @@ from appointment.patient_pipeline import process_patient_submission
 from appointment.book_appointment import confirm_booking
 from datetime import date
 from dotenv import load_dotenv
+from report_analyzer import analyze_medical_report
+from severity_engine import classify_bp, classify_sugar, classify_chol
+from health_metrics import save_metric, get_metric_history
+import json
+import pandas as pd
 load_dotenv()
 
 from who_rag import retrieve_who_context
@@ -41,6 +51,88 @@ No preamble start your answer right away
 # INITIAL PROCESS
 # --------------------------
 
+
+def process_health_dashboard(report_image, user_id):
+
+    result = analyze_medical_report(report_image)
+
+    data = result
+    if "error" in data:
+        return data["error"], "", "", None, None, None
+
+    sys = data.get("systolic_bp")
+    dia = data.get("diastolic_bp")
+    sugar = data.get("blood_sugar")
+    chol = data.get("cholesterol")
+
+    if not all([sys, dia, sugar, chol]):
+        return "Extraction failed", "", "", None, None, None
+
+    bp_status = classify_bp(sys, dia)
+    sugar_status = classify_sugar(sugar)
+    chol_status = classify_chol(chol)
+
+    save_metric(user_id, "blood_pressure", f"{sys}/{dia}")
+    save_metric(user_id,"blood_sugar",sugar)
+    save_metric(user_id,"cholesterol",chol)
+
+    bp_rows = get_metric_history(user_id,"blood_pressure")
+    sugar_rows = get_metric_history(user_id,"blood_sugar")
+    chol_rows = get_metric_history(user_id,"cholesterol")
+    
+    bp_rows = sorted(bp_rows, key=lambda x: x.created_at)
+    sugar_rows = sorted(sugar_rows, key=lambda x: x.created_at)
+    chol_rows = sorted(chol_rows, key=lambda x: x.created_at)
+
+    
+    if len(bp_rows) < 2:
+        bp_history = None
+    else:
+        bp_history = pd.DataFrame([
+            {"date": r.created_at, "value": int(r.value.split("/")[0])}
+            for r in bp_rows
+        ])
+
+    
+    if len(sugar_rows) < 2:
+        sugar_history = None
+    else:
+        sugar_history = pd.DataFrame([
+            {"date": r.created_at, "value": int(r.value)}
+            for r in sugar_rows
+        ])
+
+    if len(chol_rows) < 2:
+        chol_history = None
+    else:
+        chol_history = pd.DataFrame([
+            {"date": r.created_at, "value": int(r.value)}
+            for r in chol_rows
+        ])
+
+    bp_card = f"""
+    ### Blood Pressure
+    {bp_status}
+
+    {sys}/{dia} mmHg
+    """
+    sugar_card = f"""
+    ### Blood Sugar
+    {sugar_status}
+
+    {sugar} mg/dL
+    """
+    chol_card = f"""
+    ### Cholesterol
+    {chol_status}
+
+    {chol} mg/dL
+    """
+    
+
+    return bp_card, sugar_card, chol_card, bp_history, sugar_history, chol_history
+
+
 def signup(email, password):
     user = create_user(email, password)
     if not user:
@@ -55,7 +147,7 @@ def login(email, password):
     return user.id, "Login success"
 
 
-def process_initial(audio_filepath, image_filepath, state):
+def process_initial(audio_filepath, image_filepath, language, state):
     state = state or []
 
     if not audio_filepath and not image_filepath:
@@ -63,11 +155,16 @@ def process_initial(audio_filepath, image_filepath, state):
 
     patient_text = transcribe_with_groq(audio_filepath)
     if not patient_text.strip():
-        patient_text = "Analyze this medical image."
+        patient_text = f"Analyze this medical image. Respond in {language}."
 
     who_context = retrieve_who_context(patient_text)
     enhanced_prompt = f"""
     {SYSTEM_PROMPT}
+    IMPORTANT:
+    Respond ONLY in {language}.
+    All explanations, medical advice, and instructions must be in {language}.
+
+    
 
     Use established emergency medical care standards internally when forming your response.
     Do not mention WHO explicitly.
@@ -83,7 +180,7 @@ def process_initial(audio_filepath, image_filepath, state):
     else:
         doctor_response = "Please upload an image."
 
-    audio_path = text_to_speech_with_elevenlabs(doctor_response)
+    audio_path = text_to_speech_with_elevenlabs(doctor_response, language)
 
     state = [
         {"question": patient_text, "answer": doctor_response}
@@ -95,7 +192,6 @@ def process_initial(audio_filepath, image_filepath, state):
 ]
 
     return "", chatbot_history, audio_path, state
-
 
 # --------------------------
 # FOLLOW-UP CHAT
@@ -219,6 +315,14 @@ with gr.Blocks(title="AI Doctor with Vision, Voice, and Chat") as demo:
         
     
         with gr.Tab("🩺 Consultation"):
+            language_selector = gr.Dropdown(
+                choices=[
+                    "English","Hindi","Tamil","Telugu","Odia",
+                    "Bengali","Kannada","Malayalam","Marathi","Gujarati"
+                ],
+                value="English",
+                label="Patient Language"
+                )
 
             with gr.Row():
                 audio_input = gr.Audio(
@@ -240,13 +344,53 @@ with gr.Blocks(title="AI Doctor with Vision, Voice, and Chat") as demo:
 
 
     
-        with gr.Tab("📄 Previous Reports"):
+        with gr.Tab("📊 My Health Dashboard"):
+            
 
-            gr.Markdown("## Previous Reports")
+                
+
+            # Upload report
+            report_upload = gr.Image(type="filepath", label="Upload Medical Report")
+            analyze_report_btn = gr.Button("Analyze Report")
+
+            gr.Markdown("---")
+
+            # Health metrics row
+            with gr.Row():
+                bp_card = gr.Markdown("### Blood Pressure\nNo Data")
+                sugar_card = gr.Markdown("### Blood Sugar\nNo Data")
+                chol_card = gr.Markdown("### Cholesterol\nNo Data")
+
+            gr.Markdown("### Health Trends")
+            
+            with gr.Row():
+                bp_graph = gr.LinePlot(
+                    x="date",
+                    y="value",
+                    title="Blood Pressure Trend"
+                )
+
+                sugar_graph = gr.LinePlot(
+                    x="date",
+                    y="value",
+                    title="Blood Sugar Trend"
+                )
+
+                chol_graph = gr.LinePlot(
+                    x="date",
+                    y="value",
+                    title="Cholesterol Trend"
+                )
+            gr.Markdown("---")
+
+
+            
+
+            gr.Markdown("## Previous Medical Reports")
 
             load_reports_btn = gr.Button("Load My Reports")
             reports_list = gr.Files(label="Your Previous Reports")
-            
+ 
         with gr.Tab("🏥 Appointment"):
 
             gr.Markdown("## AI Assisted Medical Appointment")
@@ -307,7 +451,7 @@ with gr.Blocks(title="AI Doctor with Vision, Voice, and Chat") as demo:
     
     submit_btn.click(
         fn=process_initial,
-        inputs=[audio_input, image_input, session_state],
+        inputs=[audio_input, image_input, language_selector, session_state],
         outputs=[user_message, chatbot, audio_output, session_state],
         api_name=False
     )
@@ -347,9 +491,21 @@ with gr.Blocks(title="AI Doctor with Vision, Voice, and Chat") as demo:
     inputs=[user_state, doctor_id_state, appointment_date_input, slot_dropdown],
     outputs=booking_status
     )
+    analyze_report_btn.click(
+    fn=process_health_dashboard,
+    inputs=[report_upload, user_state],
+    outputs=[
+        bp_card,
+        sugar_card,
+        chol_card,
+        bp_graph,
+        sugar_graph,
+        chol_graph
+    ]
+    )
 
 demo.launch(
-    server_name="127.0.0.1",
+    server_name="0.0.0.0",
     server_port=7860,
     share=True
 )

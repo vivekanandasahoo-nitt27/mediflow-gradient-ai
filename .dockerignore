@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Environment
+.env
+venv
+env
+.medagent1
+
+# Model files (download at runtime)
+*.h5
+*.pt
+models/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs / storage
+storage/
+*.log
+
+# Not needed for container
+notebooks/
+datasets/
+
+__pycache__/
+*.pyc
+*.pyo
+
+
+*.h5
+*.pt
+appointment/models/*.h5
+appointment/models/*.pt
