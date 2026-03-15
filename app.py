@@ -25,6 +25,9 @@ from severity_engine import classify_bp, classify_sugar, classify_chol
 from health_metrics import save_metric, get_metric_history
 import json
 import pandas as pd
+
+import os
+os.makedirs("storage", exist_ok=True)
 load_dotenv()
 
 from who_rag import retrieve_who_context
@@ -280,12 +283,24 @@ def generate_final_report(state, user_id):
 
     return saved_path
 
-
 def load_reports(user_id):
+
     if not user_id:
         return []
 
-    return get_user_reports(user_id)
+    reports = get_user_reports(user_id)
+
+    fixed_reports = []
+
+    for r in reports:
+        # Fix Windows path for Docker/Linux
+        fixed_path = r.replace("\\", "/")
+
+        # Only return if file actually exists
+        if os.path.exists(fixed_path):
+            fixed_reports.append(fixed_path)
+
+    return fixed_reports
 
 
 init_db()
@@ -507,5 +522,5 @@ with gr.Blocks(title="AI Doctor with Vision, Voice, and Chat") as demo:
 demo.launch(
     server_name="0.0.0.0",
     server_port=7860,
-    share=True
+    share=False
 )

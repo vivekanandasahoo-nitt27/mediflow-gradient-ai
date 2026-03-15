@@ -18,8 +18,8 @@ WORKDIR /app
 # Install Python dependencies
 COPY requirements.txt .
 
-RUN pip install --upgrade pip
-RUN pip install --default-timeout=1000 --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install --default-timeout=1000 -r requirements.txt
 
 # Copy project files
 COPY . .
