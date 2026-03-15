@@ -44,7 +44,7 @@ Thumbs.db
 # Node / temp
 # --------------------
 node_modules/
-who_index/
+
 app.db
 
 .env
