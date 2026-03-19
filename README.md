@@ -6,7 +6,7 @@
 
 
 ### 🚀 Option 1: Use Live Demo (Recommended)
-http://152.42.182.113/
+https://882d45ed8871de7022.gradio.live/
 
 ### 💻 Option 2: Run Locally (2 minutes setup)
 
@@ -28,7 +28,7 @@ Built using **DigitalOcean Gradient AI + Droplets + Spaces**, this system provid
 
 ## 🚀 Live Demo
 
-🌐 **Live App:** http://152.42.182.113/  
+🌐 **Live App:** https://882d45ed8871de7022.gradio.live/ 
 ☁️ **Hosted on:** DigitalOcean Droplet  
 📦 **Model Storage:** DigitalOcean Spaces  
 🐳 **Deployment:** Docker Container  
