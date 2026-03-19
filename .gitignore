@@ -56,3 +56,7 @@ __pycache__/
 appointment/models/*.h5
 appointment/models/*.pt
 app.db
+
+
+
+media/
