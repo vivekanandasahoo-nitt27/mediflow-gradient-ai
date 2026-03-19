@@ -1,5 +1,25 @@
 # 🩺 AI Medical Agent — Multimodal Diagnosis & Smart Appointment System
 
+## ⚡ Quick Access for Judges
+- 🔓 This repository is **public and open-source (MIT License)** — visible in the GitHub About section.
+- 🚀 The project can be tested instantly via live demo or locally using the steps below.
+
+
+### 🚀 Option 1: Use Live Demo (Recommended)
+http://152.42.182.113/
+
+### 💻 Option 2: Run Locally (2 minutes setup)
+
+git clone https://github.com/vivekanandasahoo-nit27/mediflow-gradient-ai.git  
+cd mediflow-gradient-ai  
+pip install -r requirements.txt  
+python app.py  
+
+Open in browser: http://localhost:7860
+
+
+
+
 An end-to-end **Multimodal Healthcare AI Agent** that analyzes **voice, medical images, and text** to predict diseases, generate reports, and enable intelligent clinical appointment booking.
 
 Built using **DigitalOcean Gradient AI + Droplets + Spaces**, this system provides a **real-world AI-powered healthcare workflow**.
@@ -163,12 +183,16 @@ Appointment + Email System
 docker build -t mediflow-ai .
 docker run -d -p 80:7860 --env-file .env mediflow-ai
 ```
-## 🔐 Environment Variables
-- GROQ_API_KEY=your_key
-- OPENAI_API_KEY=your_key
-- ELEVEN_API_KEY=your_key
-- SENDGRID_API_KEY=your_key
+## 🔑 Environment Setup
 
+Create a `.env` file using the following format:
+
+GROQ_API_KEY=your_key  
+OPENAI_API_KEY=your_key  
+ELEVEN_API_KEY=your_key  
+SENDGRID_API_KEY=your_key  
+
+⚠️ Note: If API keys are not provided, please use the live demo for testing.
 
 ## 👨‍💻 Author
 

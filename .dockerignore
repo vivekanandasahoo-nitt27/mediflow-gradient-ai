@@ -40,3 +40,5 @@ __pycache__/
 *.pt
 appointment/models/*.h5
 appointment/models/*.pt
+
+media/ 
